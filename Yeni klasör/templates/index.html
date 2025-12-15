@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solana Risk Analyzer</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              background: "#050816",
+              panel: "#0b1120",
+              accent: "#22d3ee",
+              accentSoft: "#0f172a",
+              danger: "#f97373",
+              warning: "#facc15",
+              success: "#4ade80",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="h-full bg-background text-slate-100">
+    <div class="min-h-full flex flex-col">
+      <!-- Top bar -->
+      <header
+        class="border-b border-slate-800 bg-gradient-to-r from-background via-slate-900 to-background"
+      >
+        <div
+          class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="h-9 w-9 rounded-full bg-gradient-to-tr from-accent to-emerald-400 flex items-center justify-center shadow-[0_0_25px_rgba(34,211,238,0.7)]"
+            >
+              <span class="text-xs font-black tracking-widest text-slate-950"
+                >SR</span
+              >
+            </div>
+            <div>
+              <h1 class="text-lg font-semibold tracking-wide">
+                Solana Risk Analyzer
+              </h1>
+              <p class="text-xs text-slate-400 uppercase tracking-[0.2em]">
+                On-chain Threat Intelligence
+              </p>
+            </div>
+          </div>
+          <div class="text-xs text-slate-400 hidden sm:block">
+            Network:
+            <span class="text-emerald-400 font-semibold">Solana Mainnet</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main content -->
+      <main class="flex-1">
+        <div class="max-w-6xl mx-auto px-4 py-6 lg:py-10">
+          <!-- Search panel -->
+          <section
+            class="mb-6 lg:mb-8 rounded-2xl border border-slate-800 bg-panel/80 backdrop-blur-sm shadow-[0_0_60px_rgba(15,23,42,0.9)]"
+          >
+            <div
+              class="px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row gap-4 sm:items-center justify-between"
+            >
+              <div>
+                <h2 class="text-sm font-semibold text-slate-200 mb-1">
+                  Token Risk Scan
+                </h2>
+                <p class="text-xs text-slate-400">
+                  Enter a Solana mint address to analyze manipulation and
+                  honeypot risk in real-time.
+                </p>
+              </div>
+              <form
+                id="scan-form"
+                class="flex-1 flex flex-col sm:flex-row gap-3 sm:justify-end"
+                onsubmit="return false;"
+              >
+                <div class="relative flex-1 min-w-[260px]">
+                  <input
+                    id="token-input"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="Enter Solana token address (e.g. HeLp691Y...)"
+                    class="w-full rounded-xl bg-accentSoft/60 border border-slate-700/70 px-3 py-2.5 pl-3 pr-10 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent shadow-inner"
+                  />
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4 text-slate-500"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.817-4.817A6 6 0 012 8z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <button
+                  id="scan-button"
+                  class="inline-flex items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_0_25px_rgba(34,211,238,0.7)] hover:bg-cyan-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Scan Token
+                </button>
+              </form>
+            </div>
+
+            <!-- Loading state -->
+            <div
+              id="loading-state"
+              class="hidden border-t border-slate-800 px-4 sm:px-6 py-3 bg-slate-900/40"
+            >
+              <div class="flex items-center gap-3 text-sm text-slate-300">
+                <div
+                  class="h-5 w-5 border-2 border-accent border-t-transparent rounded-full animate-spin"
+                ></div>
+                <div>
+                  <p class="font-medium">
+                    Analyzing Blockchain Data...
+                  </p>
+                  <p class="text-xs text-slate-400">
+                    Checking wallet clustering, source-of-funds, wash trading,
+                    and honeypot patterns.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Results grid -->
+          <section
+            id="results-panel"
+            class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8"
+          >
+            <!-- Left: Risk gauge and trust score -->
+            <div
+              id="trust-panel"
+              class="rounded-2xl border border-slate-800 bg-panel/80 backdrop-blur-sm p-5 sm:p-6 flex flex-col"
+            >
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-200 mb-1">
+                    Risk Gauge
+                  </h3>
+                  <p class="text-xs text-slate-400">
+                    Visual representation of aggregated manipulation risk.
+                  </p>
+                </div>
+                <div
+                  id="token-label"
+                  class="text-[10px] sm:text-xs text-slate-500 text-right max-w-[180px] truncate"
+                >
+                  Awaiting token scan...
+                </div>
+              </div>
+
+              <!-- Gauge -->
+              <div class="flex-1 flex items-center justify-center py-4">
+                <div class="relative h-48 w-48 sm:h-56 sm:w-56">
+                  <!-- Background circle -->
+                  <div
+                    class="absolute inset-0 rounded-full bg-slate-900/60 border border-slate-800 shadow-[0_0_50px_rgba(15,23,42,0.9)]"
+                  ></div>
+                  <!-- Gradient ring -->
+                  <div
+                    class="absolute inset-3 rounded-full bg-gradient-to-tr from-emerald-500/40 via-accent/60 to-danger/60 blur-[1px] opacity-80"
+                  ></div>
+                  <!-- Inner circle -->
+                  <div
+                    class="absolute inset-5 rounded-full bg-slate-950/90 border border-slate-800 flex flex-col items-center justify-center gap-1 text-center px-3"
+                  >
+                    <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                      Manipulation
+                    </p>
+                    <p
+                      id="risk-score"
+                      class="text-4xl sm:text-5xl font-black tracking-tight"
+                    >
+                      --
+                    </p>
+                    <p
+                      id="risk-label"
+                      class="text-xs font-medium text-slate-400"
+                    >
+                      Idle
+                    </p>
+                  </div>
+                  <!-- Arc (SVG) -->
+                  <svg
+                    id="gauge-arc"
+                    viewBox="0 0 100 50"
+                    class="absolute inset-x-6 top-4 h-20 text-accent"
+                  >
+                    <defs>
+                      <linearGradient
+                        id="gaugeGradient"
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="0%"
+                      >
+                        <stop offset="0%" stop-color="#22c55e" />
+                        <stop offset="50%" stop-color="#22d3ee" />
+                        <stop offset="100%" stop-color="#ef4444" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M 10 50 A 40 40 0 0 1 90 50"
+                      fill="none"
+                      stroke="url(#gaugeGradient)"
+                      stroke-width="4"
+                      stroke-linecap="round"
+                      stroke-opacity="0.2"
+                    ></path>
+                    <path
+                      id="gauge-arc-fill"
+                      d="M 10 50 A 40 40 0 0 1 90 50"
+                      fill="none"
+                      stroke="url(#gaugeGradient)"
+                      stroke-width="4"
+                      stroke-linecap="round"
+                      stroke-dasharray="125"
+                      stroke-dashoffset="125"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Trust score / summary -->
+              <div class="mt-4 border-t border-slate-800 pt-4">
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-xs text-slate-400 uppercase tracking-[0.2em]">
+                    Trust Score
+                  </p>
+                  <span
+                    id="trust-badge"
+                    class="text-[10px] font-semibold uppercase tracking-[0.18em] rounded-full px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/40"
+                  >
+                    N/A
+                  </span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden">
+                  <div
+                    id="trust-bar"
+                    class="h-full w-0 rounded-full bg-gradient-to-r from-emerald-400 via-accent to-danger"
+                  ></div>
+                </div>
+                <p
+                  id="trust-caption"
+                  class="mt-2 text-xs text-slate-400 leading-relaxed"
+                >
+                  Run a scan to evaluate this token’s on-chain behavior and
+                  crowd quality.
+                </p>
+              </div>
+            </div>
+
+            <!-- Right: Activity log -->
+            <div
+              class="rounded-2xl border border-slate-800 bg-panel/80 backdrop-blur-sm p-5 sm:p-6 flex flex-col"
+            >
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-200 mb-1">
+                    Activity Log
+                  </h3>
+                  <p class="text-xs text-slate-400">
+                    Real-time security telemetry and detection reasons.
+                  </p>
+                </div>
+                <span
+                  class="rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[10px] font-medium text-slate-400"
+                  id="tx-summary"
+                >
+                  No scans yet
+                </span>
+              </div>
+
+              <div
+                id="alerts-container"
+                class="flex-1 rounded-xl border border-slate-800 bg-slate-950/60 p-3 sm:p-4 space-y-2 overflow-y-auto max-h-[340px]"
+              >
+                <p class="text-xs text-slate-500">
+                  When you run a scan, detection results will appear here as
+                  security alerts.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Security indicators -->
+          <section
+            class="mt-6 lg:mt-8 rounded-2xl border border-slate-800 bg-panel/80 backdrop-blur-sm p-5 sm:p-6"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-200 mb-1">
+                  Security Indicators
+                </h3>
+                <p class="text-xs text-slate-400">
+                  High-level posture across wallet maturity, liquidity safety,
+                  and wash-trading patterns.
+                </p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <!-- Wallet maturity -->
+              <div
+                id="wallet-maturity-card"
+                class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 flex flex-col gap-1"
+              >
+                <p class="text-xs text-slate-400 uppercase tracking-[0.18em]">
+                  Wallet Maturity
+                </p>
+                <p
+                  id="wallet-maturity-value"
+                  class="text-sm font-semibold text-slate-100"
+                >
+                  Awaiting scan
+                </p>
+                <p
+                  id="wallet-maturity-subtext"
+                  class="text-[11px] text-slate-400 leading-relaxed"
+                >
+                  Fresh vs. aged buyer distribution for the most recent flows.
+                </p>
+              </div>
+
+              <!-- Liquidity guard -->
+              <div
+                id="liquidity-card"
+                class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 flex flex-col gap-1"
+              >
+                <p class="text-xs text-slate-400 uppercase tracking-[0.18em]">
+                  Liquidity Guard
+                </p>
+                <div class="flex items-center gap-2">
+                  <span id="liquidity-icon" class="text-lg">🛡️</span>
+                  <p
+                    id="liquidity-status-label"
+                    class="text-sm font-semibold text-emerald-400"
+                  >
+                    Unknown
+                  </p>
+                </div>
+                <p
+                  id="liquidity-status-subtext"
+                  class="text-[11px] text-slate-400 leading-relaxed"
+                >
+                  Indicates whether LP tokens appear locked/burned or remain
+                  withdrawable.
+                </p>
+              </div>
+
+              <!-- Wash trading -->
+              <div
+                id="wash-card"
+                class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 flex flex-col gap-1"
+              >
+                <p class="text-xs text-slate-400 uppercase tracking-[0.18em]">
+                  Wash Trade Detection
+                </p>
+                <p
+                  id="wash-status-label"
+                  class="text-sm font-semibold text-emerald-400"
+                >
+                  Clean
+                </p>
+                <p
+                  id="wash-status-subtext"
+                  class="text-[11px] text-slate-400 leading-relaxed"
+                >
+                  Highlights if a small cluster of wallets dominates trading
+                  activity.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const form = document.getElementById("scan-form");
+      const input = document.getElementById("token-input");
+      const button = document.getElementById("scan-button");
+      const loading = document.getElementById("loading-state");
+
+      const riskScoreEl = document.getElementById("risk-score");
+      const riskLabelEl = document.getElementById("risk-label");
+      const gaugeArcFill = document.getElementById("gauge-arc-fill");
+      const tokenLabelEl = document.getElementById("token-label");
+
+      const trustBar = document.getElementById("trust-bar");
+      const trustBadge = document.getElementById("trust-badge");
+      const trustCaption = document.getElementById("trust-caption");
+      const trustPanel = document.getElementById("trust-panel");
+
+      const alertsContainer = document.getElementById("alerts-container");
+      const txSummary = document.getElementById("tx-summary");
+
+      const walletMaturityValue = document.getElementById(
+        "wallet-maturity-value"
+      );
+      const walletMaturitySubtext = document.getElementById(
+        "wallet-maturity-subtext"
+      );
+      const liquidityCard = document.getElementById("liquidity-card");
+      const liquidityIcon = document.getElementById("liquidity-icon");
+      const liquidityStatusLabel = document.getElementById(
+        "liquidity-status-label"
+      );
+      const liquidityStatusSubtext = document.getElementById(
+        "liquidity-status-subtext"
+      );
+      const washCard = document.getElementById("wash-card");
+      const washStatusLabel = document.getElementById("wash-status-label");
+      const washStatusSubtext = document.getElementById("wash-status-subtext");
+
+      function setLoading(state) {
+        if (state) {
+          loading.classList.remove("hidden");
+          button.disabled = true;
+        } else {
+          loading.classList.add("hidden");
+          button.disabled = false;
+        }
+      }
+
+      function classifyRisk(score) {
+        if (score >= 80) return { label: "Critical", color: "#ef4444" };
+        if (score >= 60) return { label: "High", color: "#f97316" };
+        if (score >= 40) return { label: "Elevated", color: "#eab308" };
+        if (score >= 20) return { label: "Guarded", color: "#22c55e" };
+        return { label: "Low", color: "#22c55e" };
+      }
+
+      function updateGauge(score) {
+        const clamped = Math.max(0, Math.min(100, score));
+        riskScoreEl.textContent = clamped.toFixed(0);
+
+        const { label, color } = classifyRisk(clamped);
+        riskLabelEl.textContent = label + " Risk";
+        riskLabelEl.style.color = color;
+
+        // Semi-circle arc length approximation (dasharray=125)
+        const maxLength = 125;
+        const offset = maxLength - (clamped / 100) * maxLength;
+        gaugeArcFill.setAttribute("stroke-dashoffset", offset.toString());
+      }
+
+      function updateTrust(trustScore) {
+        const clamped = Math.max(0, Math.min(100, trustScore));
+        const basePanelClass =
+          "rounded-2xl border bg-panel/80 backdrop-blur-sm p-5 sm:p-6 flex flex-col";
+
+        trustBar.style.width = trustScore + "%";
+
+        let badgeText = "UNRATED";
+        let badgeClass =
+          "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]";
+
+        if (clamped >= 80) {
+          badgeText = "TRUSTED";
+          badgeClass +=
+            " bg-emerald-500/10 text-emerald-400 border-emerald-500/40";
+        } else if (clamped >= 50) {
+          badgeText = "WATCHLIST";
+          badgeClass += " bg-yellow-500/10 text-yellow-400 border-yellow-500/40";
+        } else {
+          badgeText = "HOSTILE RISK";
+          badgeClass += " bg-red-500/10 text-red-400 border-red-500/40";
+        }
+
+        trustBadge.textContent = badgeText;
+        trustBadge.className = badgeClass;
+
+        if (clamped >= 80) {
+          trustPanel.className =
+            basePanelClass +
+            " border-emerald-500/60 shadow-[0_0_35px_rgba(34,197,94,0.5)]";
+        } else if (clamped < 30) {
+          trustPanel.className =
+            basePanelClass +
+            " border-red-500/60 shadow-[0_0_35px_rgba(239,68,68,0.5)]";
+        } else {
+          trustPanel.className =
+            basePanelClass +
+            " border-slate-800 shadow-[0_0_60px_rgba(15,23,42,0.9)]";
+        }
+
+        trustCaption.textContent =
+          "Trust Score reflects manipulation risk, authority centralization, and holder concentration. High scores suggest organic flows and resilient token design; low scores indicate concentrated or engineered activity.";
+      }
+
+      function updateSecurityIndicators(data, score) {
+        const reasons = data.reasons || [];
+
+        // Wallet maturity: try to extract fractions from reason strings
+        let freshFraction = null;
+        let source = null;
+
+        const freshSurgeReason = reasons.find((r) =>
+          /Fresh Wallet Surge Detected/i.test(r)
+        );
+        if (freshSurgeReason) {
+          const m = freshSurgeReason.match(/fraction=([0-9.]+)/i);
+          if (m && m[1]) {
+            freshFraction = parseFloat(m[1]);
+            source = "recent";
+          }
+        } else {
+          const newWalletReason = reasons.find((r) =>
+            /New Wallet Concentration/i.test(r)
+          );
+          if (newWalletReason) {
+            const m = newWalletReason.match(
+              /new_wallet_fraction=([0-9.]+)/i
+            );
+            if (m && m[1]) {
+              freshFraction = parseFloat(m[1]);
+              source = "global";
+            }
+          }
+        }
+
+        if (freshFraction !== null && !Number.isNaN(freshFraction)) {
+          const freshPct = Math.max(
+            0,
+            Math.min(100, freshFraction * 100)
+          );
+          const agedPct = Math.max(0, 100 - freshPct);
+
+          walletMaturityValue.textContent = `Fresh ~${freshPct.toFixed(
+            0
+          )}% / Aged ~${agedPct.toFixed(0)}%`;
+          walletMaturityValue.className =
+            "text-sm font-semibold " +
+            (freshPct > 50 ? "text-red-400" : "text-emerald-400");
+
+          walletMaturitySubtext.textContent =
+            source === "recent"
+              ? "Derived from the most recent buyers (last-window surge)."
+              : "Derived from the broader buyer set in this sample window.";
+        } else {
+          walletMaturityValue.textContent = "Unknown";
+          walletMaturityValue.className =
+            "text-sm font-semibold text-slate-300";
+          walletMaturitySubtext.textContent =
+            "Wallet maturity distribution not available for this scan.";
+        }
+
+        // Liquidity Guard
+        const hasUnlocked = reasons.some((r) =>
+          /Unlocked Liquidity Risk/i.test(r)
+        );
+        const baseLiquidityClass =
+          "rounded-xl border bg-slate-950/60 p-4 flex flex-col gap-1";
+        if (hasUnlocked) {
+          liquidityCard.className =
+            baseLiquidityClass +
+            " border-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.4)]";
+          liquidityIcon.textContent = "⚠️";
+          liquidityStatusLabel.textContent = "Unlocked / At Risk";
+          liquidityStatusLabel.className =
+            "text-sm font-semibold text-red-400";
+          liquidityStatusSubtext.textContent =
+            "LP tokens appear unlockable or not burned, raising the risk of a liquidity rug.";
+        } else {
+          liquidityCard.className =
+            baseLiquidityClass +
+            " border-emerald-500/40 shadow-[0_0_18px_rgba(16,185,129,0.35)]";
+          liquidityIcon.textContent = "🛡️";
+          liquidityStatusLabel.textContent = "Locked / Burned (Simulated)";
+          liquidityStatusLabel.className =
+            "text-sm font-semibold text-emerald-400";
+          liquidityStatusSubtext.textContent =
+            "No unlocked-liquidity anomalies detected in the simulated analysis.";
+        }
+
+        // Wash trade detection
+        const washDetected = reasons.some((r) =>
+          /Wash-Trading Pattern Detected/i.test(r)
+        );
+        const baseWashClass =
+          "rounded-xl border bg-slate-950/60 p-4 flex flex-col gap-1";
+        if (washDetected) {
+          washCard.className =
+            baseWashClass +
+            " border-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.4)]";
+          washStatusLabel.textContent = "Suspicious";
+          washStatusLabel.className =
+            "text-sm font-semibold text-red-400";
+          washStatusSubtext.textContent =
+            "A small wallet cluster is dominating trade flows, consistent with wash-trading behavior.";
+        } else {
+          washCard.className =
+            baseWashClass +
+            " border-emerald-500/40 shadow-[0_0_18px_rgba(16,185,129,0.35)]";
+          washStatusLabel.textContent = "Clean";
+          washStatusLabel.className =
+            "text-sm font-semibold text-emerald-400";
+          washStatusSubtext.textContent =
+            "No strong signs of repetitive circulation between a small set of wallets were detected.";
+        }
+      }
+
+      function addAlerts(reasons, score) {
+        alertsContainer.innerHTML = "";
+
+        if (!reasons || reasons.length === 0) {
+          const p = document.createElement("p");
+          p.className = "text-xs text-slate-500";
+          p.textContent =
+            "No explicit detection reasons returned by the engine.";
+          alertsContainer.appendChild(p);
+          return;
+        }
+
+        const baseIcon = score >= 60 ? "⚠️" : score >= 30 ? "⚠️" : "ℹ️";
+
+        reasons.forEach((reason) => {
+          const isHigh =
+            /Sequential Buying|Source-of-Funds|HoneyPot|High trade activity|wash-trading|Fresh Wallet Surge|Wash-Trading Pattern/i.test(
+              reason
+            );
+          const isMedium =
+            /New Wallet Concentration|Volume|Unlocked Liquidity|Top-Holder Concentration|Whale Concentration/i.test(
+              reason
+            ) && !isHigh;
+
+          const icon = isHigh ? "🚨" : isMedium ? baseIcon : "ℹ️";
+
+          const card = document.createElement("div");
+          card.className =
+            "flex items-start gap-2 rounded-lg border px-3 py-2 text-xs " +
+            (isHigh
+              ? "border-red-500/50 bg-red-950/40 text-red-200"
+              : isMedium
+              ? "border-yellow-500/40 bg-yellow-950/30 text-yellow-100"
+              : "border-slate-700 bg-slate-950/60 text-slate-200");
+
+          const iconSpan = document.createElement("span");
+          iconSpan.className = "mt-[2px]";
+          iconSpan.textContent = icon;
+
+          const textDiv = document.createElement("div");
+          const title = document.createElement("p");
+          title.className = "font-semibold mb-0.5";
+          title.textContent = reason.split(":")[0];
+
+          const detail = document.createElement("p");
+          detail.className = "text-[11px] text-slate-200/80";
+          detail.textContent = reason.includes(":")
+            ? reason.substring(reason.indexOf(":") + 1).trim()
+            : reason;
+
+          textDiv.appendChild(title);
+          textDiv.appendChild(detail);
+
+          card.appendChild(iconSpan);
+          card.appendChild(textDiv);
+
+          alertsContainer.appendChild(card);
+        });
+      }
+
+      async function runScan() {
+        const token = input.value.trim();
+        if (!token) {
+          input.focus();
+          return;
+        }
+
+        setLoading(true);
+        tokenLabelEl.textContent = token;
+
+        try {
+          const body = { max_transactions: 10 };
+          const resp = await fetch(`/v1/risk-analysis/${token}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+          });
+
+          if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}`);
+          }
+
+          const data = await resp.json();
+
+          const score = data.manipulation_score ?? 0;
+          const trustScore = data.trust_score ?? 100 - score;
+          updateGauge(score);
+          updateTrust(trustScore);
+
+          const analyzed = data.analyzed_transactions ?? 0;
+          txSummary.textContent = `${analyzed} recent purchase transactions analyzed`;
+
+          addAlerts(data.reasons || [], score);
+          updateSecurityIndicators(data, score);
+        } catch (err) {
+          console.error(err);
+          updateGauge(0);
+          updateTrust(0);
+          txSummary.textContent = "Scan failed";
+          alertsContainer.innerHTML = "";
+          const p = document.createElement("p");
+          p.className = "text-xs text-red-300";
+          p.textContent =
+            "Scan failed. Please check the token address and try again.";
+          alertsContainer.appendChild(p);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      form.addEventListener("submit", runScan);
+      button.addEventListener("click", runScan);
+    </script>
+  </body>
+</html>
+
+
